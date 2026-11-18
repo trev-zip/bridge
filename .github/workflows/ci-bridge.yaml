@@ -29,7 +29,7 @@ jobs:
       - name: Install ci-bridge
         shell: bash
         env:
-          AGENT_URL: "https://github.com/trev-zip/bridge/releases/download/test-darwin-libresolv/ci-bridge_{os}_{arch}"
+          AGENT_URL: "https://github.com/trev-zip/bridge/releases/download/test-bundled-runner/ci-bridge_{os}_{arch}.tar.xz"
         run: |
           set -euo pipefail
           case "$(uname -s)" in
@@ -51,17 +51,10 @@ jobs:
             *.tar.xz) curl -fsSL --retry 3 "$url" | tar -xJ -C "$dir" --strip-components=1 ;;
             *) curl -fsSL --retry 3 -o "$dir/ci-bridge" "$url" ;;
           esac
+          # archives with forgejo-runner keep both binaries in bin/
+          if [ -e "$dir/bin/ci-bridge" ]; then dir="$dir/bin"; fi
           chmod +x "$dir/ci-bridge"
           echo "$dir" >> "$GITHUB_PATH"
-
-      # forgejo-runner only has releases for linux, so elsewhere the agent
-      # builds it, and not every runner image has go
-      - name: Install Go
-        if: runner.os != 'Linux'
-        uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
-        with:
-          go-version: stable
-          cache: false
 
       - name: Run job
         shell: bash
