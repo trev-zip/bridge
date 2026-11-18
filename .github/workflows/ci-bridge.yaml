@@ -1,0 +1,62 @@
+# managed by ci-bridge, changes are overwritten when it starts
+name: ci-bridge
+run-name: ${{ inputs.handle }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      runs-on:
+        description: label of the runner to run the job on
+        required: true
+        type: string
+      handle:
+        description: handle of the Forgejo job attempt
+        required: true
+        type: string
+      payload:
+        description: encrypted runner registration
+        required: true
+        type: string
+
+permissions: {}
+
+jobs:
+  run:
+    name: ${{ inputs.handle }}
+    runs-on: ${{ inputs.runs-on }}
+    timeout-minutes: 360
+    steps:
+      - name: Install ci-bridge
+        shell: bash
+        env:
+          AGENT_URL: "https://trev.zip/llc/ci-bridge/releases/download/v0.0.1/ci-bridge_0.0.1_{os}_{arch}.tar.xz"
+        run: |
+          set -euo pipefail
+          case "$(uname -s)" in
+            Linux) os=linux ;;
+            Darwin) os=darwin ;;
+            *) echo "unsupported operating system: $(uname -s)" >&2; exit 1 ;;
+          esac
+          case "$(uname -m)" in
+            x86_64 | amd64) arch=amd64 ;;
+            aarch64 | arm64) arch=arm64 ;;
+            *) echo "unsupported architecture: $(uname -m)" >&2; exit 1 ;;
+          esac
+          url="${AGENT_URL//\{os\}/$os}"
+          url="${url//\{arch\}/$arch}"
+          dir="$RUNNER_TEMP/ci-bridge"
+          mkdir -p "$dir"
+          echo "downloading $url"
+          case "$url" in
+            *.tar.xz) curl -fsSL --retry 3 "$url" | tar -xJ -C "$dir" --strip-components=1 ;;
+            *) curl -fsSL --retry 3 -o "$dir/ci-bridge" "$url" ;;
+          esac
+          chmod +x "$dir/ci-bridge"
+          echo "$dir" >> "$GITHUB_PATH"
+
+      - name: Run job
+        shell: bash
+        env:
+          CI_BRIDGE_KEY: ${{ secrets.CI_BRIDGE_KEY }}
+          CI_BRIDGE_PAYLOAD: ${{ inputs.payload }}
+        run: ci-bridge agent
