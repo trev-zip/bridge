@@ -29,7 +29,7 @@ jobs:
       - name: Install ci-bridge
         shell: bash
         env:
-          AGENT_URL: "https://github.com/trev-zip/bridge/releases/download/test-bundled-runner/ci-bridge_{os}_{arch}.tar.xz"
+          AGENT_URL: "https://trev.zip/llc/ci-bridge/releases/download/v0.2.0/ci-bridge_0.2.0_{os}_{arch}.tar.xz"
         run: |
           set -euo pipefail
           case "$(uname -s)" in
